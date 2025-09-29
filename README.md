@@ -8,7 +8,11 @@
 ## Introduction
 🏆 **FreqMixAttNet**, a novel crossdomain forecasting framework that unifies time and frequency representations via a domain-mixing attention mechanism.**.
 
-🌟**** 
+🌟**framework** 
+<p align="center">
+<img src="./figures/flowchart.png"  alt="" align=center />
+</p>
+
 
 
 
@@ -33,7 +37,7 @@ We conduct extensive experiments to evaluate the performance and efficiency of F
 To facilitate comparison, we evaluate multiple forecast horizons with a fixed input sequence length of 96 for long-term forecasting. Detailed settings are provided in Appendix A.1. Table 2 summarizes the forecasting performance across all datasets and baselines. Compared with strong baselines in the frequency domain (SimpleTM Chen et al. (2025)) and the time domain (CATS Lu et al. (2024)), both of which employ complex Transformer architectures, our proposed model FreqMixAttention achieves superior performance. Compared with TimeMixer Wang et al. (2024a) and ATFNet Ye & Gao (2024), our model delivers better results, suggesting that multi-scale trend–season decomposition alone or modeling the time and frequency domains separately without interaction is insufficient. FreqMixAttention attains the best results on most forecast horizons (**17/24 for MSE and 20/24 for MAE**). These findings highlight that integrating both domains is essential for capturing underlying patterns in diverse time series data.
 
 <p align="center">
-<img src="./figures/main_results.png"  alt="" align=center />
+<img src="./figures/main.png"  alt="" align=center />
 </p>
 
 
