@@ -1,12 +1,15 @@
+import os
+
 import numpy as np
-import pandas as pd
 import torch
 import matplotlib.pyplot as plt
+import pandas as pd
+import math
 
 plt.switch_backend('agg')
 
 
-def adjust_learning_rate(optimizer, scheduler, epoch, args, printout=True):
+def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
     if args.lradj == 'type1':
         lr_adjust = {epoch: args.learning_rate * (0.5 ** ((epoch - 1) // 1))}
@@ -17,15 +20,13 @@ def adjust_learning_rate(optimizer, scheduler, epoch, args, printout=True):
         }
     elif args.lradj == 'type3':
         lr_adjust = {epoch: args.learning_rate if epoch < 3 else args.learning_rate * (0.9 ** ((epoch - 3) // 1))}
-    elif args.lradj == 'PEMS':
-        lr_adjust = {epoch: args.learning_rate * (0.95 ** (epoch // 1))}
-    elif args.lradj == 'TST':
-        lr_adjust = {epoch: scheduler.get_last_lr()[0]}
+    elif args.lradj == "cosine":
+        lr_adjust = {epoch: args.learning_rate /2 * (1 + math.cos(epoch / args.train_epochs * math.pi))}
     if epoch in lr_adjust.keys():
         lr = lr_adjust[epoch]
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
-        if printout: print('Updating learning rate to {}'.format(lr))
+        # print('Updating learning rate to {}'.format(lr))
 
 
 class EarlyStopping:
@@ -35,7 +36,7 @@ class EarlyStopping:
         self.counter = 0
         self.best_score = None
         self.early_stop = False
-        self.val_loss_min = np.Inf
+        self.val_loss_min = np.inf
         self.delta = delta
 
     def __call__(self, val_loss, model, path):
@@ -54,8 +55,8 @@ class EarlyStopping:
             self.counter = 0
 
     def save_checkpoint(self, val_loss, model, path):
-        if self.verbose:
-            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        # if self.verbose:
+            # print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
         torch.save(model.state_dict(), path + '/' + 'checkpoint.pth')
         self.val_loss_min = val_loss
 
@@ -79,6 +80,7 @@ class StandardScaler():
         return (data * self.std) + self.mean
 
 
+
 def save_to_csv(true, preds=None, name='./pic/test.pdf'):
     """
     Results visualization
@@ -86,29 +88,16 @@ def save_to_csv(true, preds=None, name='./pic/test.pdf'):
     data = pd.DataFrame({'true': true, 'preds': preds})
     data.to_csv(name, index=False, sep=',')
 
-
 def visual(true, preds=None, name='./pic/test.pdf'):
     """
     Results visualization
     """
-    plt.figure()
-    plt.plot(true, label='GroundTruth', linewidth=2)
+    plt.figure(figsize=(18,8))
     if preds is not None:
         plt.plot(preds, label='Prediction', linewidth=2)
+    plt.plot(true, label='GroundTruth', linewidth=2)
     plt.legend()
     plt.savefig(name, bbox_inches='tight')
-
-
-def visual_weights(weights, name='./pic/test.pdf'):
-    """
-    Weights visualization
-    """
-    fig, ax = plt.subplots()
-    # im = ax.imshow(weights, cmap='plasma_r')
-    im = ax.imshow(weights, cmap='YlGnBu')
-    fig.colorbar(im, pad=0.03, location='top')
-    plt.savefig(name, dpi=500, pad_inches=0.02)
-    plt.close()
 
 
 def adjustment(gt, pred):
