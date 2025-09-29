@@ -1,13 +1,13 @@
 import os
 import torch
-from models import TimeMixer
+from models import FreqMixAttNet
 
 
 class Exp_Basic(object):
     def __init__(self, args):
         self.args = args
         self.model_dict = {
-            'TimeMixer': TimeMixer,
+            'FreqMixAttNet': FreqMixAttNet,
         }
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
