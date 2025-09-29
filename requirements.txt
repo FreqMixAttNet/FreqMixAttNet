@@ -1,0 +1,14 @@
+pytorch_wavelets
+pywt
+matplotlib
+numpy
+pandas
+patool
+reformer_pytorch
+scikit_learn
+scipy
+sktime
+sympy
+torch
+tqdm
+sktime; python_version == "3.8"
