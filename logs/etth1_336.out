@@ -1,0 +1,78 @@
+Fri Sep 12 13:58:11 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H20                     Off |   00000000:48:00.0 Off |                    0 |
+| N/A   31C    P0             72W /  500W |       1MiB /  97871MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+CUDA_VISIBLE_DEVICES: 
+CUDA available: True
+CUDA device count: 1
+Args in experiment:
+Namespace(task_name='long_term_forecast', is_training=1, model_id='0724_ETTh1', model='TimeMixerFilter3_3', data='ETTh1', if_vaild=True, root_path='./data/', data_path='ETTh1.csv', features='M', target='OT', scaler_type='std', freq='h', checkpoints='./checkpoints/', start_test_days='2025-03-15', start_pred_days='2025-06-06', pred_period=192, label_name='OT', seq_len=96, pred_len=336, label_len=0, num_class=1, seasonal_patterns='Monthly', expand=2, d_conv=4, top_k=5, num_kernels=6, enc_in=7, dec_in=7, c_out=7, d_model=32, n_heads=4, e_layers=2, d_layers=1, d_ff=32, moving_avg=25, factor=1, distil=True, dropout=0.1, embed='timeH', alpha=0.1, activation='gelu', channel_independence=1, decomp_method='moving_avg', use_norm=1, down_sampling_layers=2, down_sampling_window=2, down_sampling_method='avg', seg_len=24, is_dff=False, patch_len=16, levels=3, num_workers=8, itr=1, train_epochs=6, batch_size=128, patience=10, learning_rate=0.01, des='train', loss='MSE_penalty2', mape_threshold=0.12, penalty_threshold=0.8, penalty_weight=0, lradj='type1', use_amp=False, seed=42, is_seed=True, use_gpu=True, gpu=0, gpu_type='cuda', use_multi_gpu=False, devices='0,1,2,3', inverse=False, use_dtw=False, use_augmentation=True, aug_weight=0.07, jitter_scale_ratio=0.01, jitter_ratio=0.3, max_seg=12, aug_type='type2', mix_rate=0.8, mask_ratio=0.5, period_len=8, freq_loss=True, freq_weight=5.0, use_swa=False, ver='type2', trend_weight=0.5, l1l2_alpha=0.035, aug_constrast_weight1=0.01, aug_constrast_weight2=0.008)
+Use GPU: cuda:0
+configs.e_layers: 2
+------------------self.weights paramters in MultiScaleSeasonMixing11---------------------
+------------------self.weights paramters in MultiScaleSeasonMixing11---------------------
+emb_size: 4 emb_num: 7
+Exp_Long_Term_Forecast 11: loss4
+------------------self.weights paramters in MultiScaleSeasonMixing11---------------------
+*************************************************************************************************** *************************
+iter:1   alpha:0.5 aug_weight:0.03
+*************************************************************************************************** *************************
+################################################################################
+>>>>>>>start training : ver_loss4_us_False_lr0.02_dr0.2_ETTh1_sl96_pl336_dm32_nh4_aw0.03_alpha0.5_fw8_ag1c0.01_ag2c0.008_bs128_long_term_forecast_0724_ETTh1_fma_ftM_el2_dl1_df32_idFalse_ebtimeH_dsl2_dsw2_lsMSE_penalty2_pw0_train_0 >>>>>>>>>>>>>>>>>>>>>>>>>>
+----------------------------------------  start to print model parameters  ----------------------------------------
+
+Total parameters: 156829
+----------------------------------------  endding of print model parameters  ----------------------------------------
+Epoch: 1 cost time: 40.21179270744324
+Epoch: 1, Steps: 65 | Train Loss: 54.8742402 Vali Loss: 66.7823792 Test Loss: 55.0510254
+Epoch: 1, Steps: 65 | Train Mse: 0.5609990 Vali Mse: 0.7785391 Test Mse: 0.4528482
+Epoch: 1, Steps: 65 | Train Mae: 0.6204253 Vali Mae: 1.3322170 Test Mae: 0.4725756
+Epoch: 2 cost time: 29.385751247406006
+Epoch: 2, Steps: 65 | Train Loss: 51.0637801 Vali Loss: 65.8407974 Test Loss: 53.5399284
+Epoch: 2, Steps: 65 | Train Mse: 0.4857697 Vali Mse: 0.7682831 Test Mse: 0.4415486
+Epoch: 2, Steps: 65 | Train Mae: 0.4876772 Vali Mae: 1.3100340 Test Mae: 0.4548652
+Epoch: 3 cost time: 27.27054476737976
+Epoch: 3, Steps: 65 | Train Loss: 50.2535784 Vali Loss: 65.2301483 Test Loss: 53.0083847
+Epoch: 3, Steps: 65 | Train Mse: 0.4790851 Vali Mse: 0.7636427 Test Mse: 0.4380436
+Epoch: 3, Steps: 65 | Train Mae: 0.4765213 Vali Mae: 1.2955166 Test Mae: 0.4472485
+Epoch: 4 cost time: 27.26032853126526
+Epoch: 4, Steps: 65 | Train Loss: 49.9819899 Vali Loss: 65.1366272 Test Loss: 52.8312988
+Epoch: 4, Steps: 65 | Train Mse: 0.4757964 Vali Mse: 0.7634943 Test Mse: 0.4374163
+Epoch: 4, Steps: 65 | Train Mae: 0.4714102 Vali Mae: 1.2948878 Test Mae: 0.4454450
+Epoch: 5 cost time: 27.269684553146362
+Epoch: 5, Steps: 65 | Train Loss: 49.8068658 Vali Loss: 65.0742874 Test Loss: 52.9687614
+Epoch: 5, Steps: 65 | Train Mse: 0.4744818 Vali Mse: 0.7642027 Test Mse: 0.4414676
+Epoch: 5, Steps: 65 | Train Mae: 0.4685421 Vali Mae: 1.2952361 Test Mae: 0.4514247
+Epoch: 6 cost time: 27.268924713134766
+Epoch: 6, Steps: 65 | Train Loss: 49.7170789 Vali Loss: 65.0199890 Test Loss: 52.5478706
+Epoch: 6, Steps: 65 | Train Mse: 0.4733624 Vali Mse: 0.7628217 Test Mse: 0.4336222
+Epoch: 6, Steps: 65 | Train Mae: 0.4662947 Vali Mae: 1.2946559 Test Mae: 0.4385975
+>>>>>>>testing : ver_loss4_us_False_lr0.02_dr0.2_ETTh1_sl96_pl336_dm32_nh4_aw0.03_alpha0.5_fw8_ag1c0.01_ag2c0.008_bs128_long_term_forecast_0724_ETTh1_fma_ftM_el2_dl1_df32_idFalse_ebtimeH_dsl2_dsw2_lsMSE_penalty2_pw0_train_0  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+loading model
+2025-09-12 14:02:14.433329 rmse:0.6616********2295, mae:0.4329********9929, mape:9.19487476348877, mspe35996.42578125, mse0.4377********3727
+已删除checkpoint: ./checkpoints/ver_loss4_us_False_lr0.02_dr0.2_ETTh1_sl96_pl336_dm32_nh4_aw0.03_alpha0.5_fw8_ag1c0.01_ag2c0.008_bs128_long_term_forecast_0724_ETTh1_fma_ftM_el2_dl1_df32_idFalse_ebtimeH_dsl2_dsw2_lsMSE_penalty2_pw0_train_0/checkpoint.pth
+finished!
+################################################################################
+
+Total spend time for itr 0:  228.23326802253723
+
+
+################################################################################
+  iteration                             version       mae       mse
+0    iter:1  iter:1   alpha:0.5 aug_weight:0.03  0.432952  0.437781
