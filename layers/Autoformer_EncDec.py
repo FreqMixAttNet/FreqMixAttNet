@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import pytorch_wavelets as ptw
+import pywt
+from pytorch_wavelets import DWTForward
 
 class my_Layernorm(nn.Module):
     """
@@ -52,6 +54,84 @@ class series_decomp(nn.Module):
         res = x - moving_mean
         return res, moving_mean
 
+class wavelet_series_decomp(nn.Module):
+    """
+    Bottom-up mixing season pattern
+    """
+
+    def __init__(self, config, wavelet='bior3.7', levels=4, mode='zero', scale=1):
+        super(wavelet_series_decomp, self).__init__()
+        self.wavalet = wavelet
+        self.levels = levels
+        self.mode = mode
+        # self.sacle_size = [[] for j in range(config.down_sampling_layers)]
+        if  wavelet=='db4':
+            kernel_length = 4
+        elif  wavelet=='bior3.7':
+            kernel_length = 8
+        else:
+            print('please define!!!!')
+        
+        down_sampling_layers = 0
+        seq_len  =  128
+        # 初始化小波变换对象
+        # self.dwtnet = DWTForward(wave=wavelet, J=levels, mode=mode).cuda()
+        # self.idwtnet = DWTForward(wave=wavelet, mode=mode).cuda()
+        self.dwtnet = ptw.DWT1D(wave=wavelet, J=levels, mode=mode)
+        self.idwtnet = ptw.IDWT1D(wave=wavelet, mode=mode)
+        #多尺度滤波器
+        print('------------------self.weights paramters in MultiScaleSeasonMixing11---------------------')
+        # self.cycle_weights = [[] for j in range(down_sampling_layers +1)]
+        # self.last_weights = []
+        # for j in range(down_sampling_layers +1):
+        #     size  = seq_len // (down_sampling_window ** j)
+        #     for i in range(levels):
+        #         size = math.ceil(size/2 + kernel_length - 1)
+        #         self.cycle_weights[j].append(nn.Parameter(scale * torch.randn(1, 1, size )))
+        #         print(self.cycle_weights[j][i].shape )
+        #     self.last_weights.append(nn.Parameter(scale * torch.randn(1, 1, size )))
+        
+    def wavenetdomp(self, x):
+        """
+        将时序数据分解为趋势项和周期项
+        :param x: 输入张量，形状为 (b, t, c)
+        :return: (trend, cycle) 形状均为 (b, t, c)
+        """
+        b, c, t = x.shape
+
+        # 多尺度分解 
+        coeffs = self.dwtnet(x)  # 返回元组: (cA_J, [cD1, cD2, ..., cD_J])
+        cA_last = coeffs[0]  # 最底层近似系数 (b, c, t/2^J)
+        cD_list = coeffs[1]  # 各层细节系数列表
+ 
+        # 滤波重构周期分量
+        cycle_coeffs = []
+        # print("cA_last:",cA_last.shape,x.shape)
+        for j in range(len(cD_list)):
+            # cycle_coeff = cD_list[j] .to(x.device)
+
+            cycle_coeff = torch.zeros_like(cD_list[j].to(x.device) )
+            cycle_coeffs.append(cycle_coeff)    
+            
+        ca_last = cA_last .to(x.device)
+        # cycle_coeffs = (torch.zeros_like(cA_last), cycle_coeffs)        
+        cycle_coeffs = (ca_last, cycle_coeffs)        
+        
+        #转回时域
+        cycle = self.idwt(cycle_coeffs)        
+
+        return  cycle.permute(0, 2, 1)
+    
+    def idwt(self, x):
+        return self.idwtnet(x)
+            
+    def forward(self, season_list):
+        # mixing high->low
+      
+        out_ = self.wavenetdomp(season_list)   
+        out_ = out_.float()
+
+        return out_
 
 class series_decomp_multi(nn.Module):
     """
