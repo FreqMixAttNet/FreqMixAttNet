@@ -25,21 +25,22 @@ bash ......
 ```
 
 ## Main Results
-We conduct extensive experiments to evaluate the performance and efficiency of FreqMixAttNet, covering long-term and short-term forecasting, including 18 real-world benchmarks and 15 baselines.
+We conduct extensive experiments to evaluate the performance and efficiency of FreqMixAttNet, covering long-term forecasting, including 6 real-world benchmarks and 9 baselines.
 **🏆 FreqMixAttNet achieves consistent state-of-the-art performance in all benchmarks**, covering a large variety of series with different frequencies, variate numbers and real-world scenarios.
 
 ### Long-term Forecasting
 
-To ensure fairness in model comparison, experiments were performed with standardized parameters, including aligned input lengths, batch sizes, and training epochs. Additionally, given that results in various studies often stem from hyperparameter optimization, we include outcomes from comprehensive parameter searches.
+To facilitate comparison, we evaluate multiple forecast horizons with a fixed input sequence length of 96 for long-term forecasting. Detailed settings are provided in Appendix A.1. Table 2 summarizes the forecasting performance across all datasets and baselines. Compared with strong baselines in the frequency domain (SimpleTM Chen et al. (2025)) and the time domain (CATS Lu et al. (2024)), both of which employ complex Transformer architectures, our proposed model FreqMixAttention achieves superior performance. Compared with TimeMixer Wang et al. (2024a) and ATFNet Ye & Gao (2024), our model delivers better results, suggesting that multi-scale trend–season decomposition alone or modeling the time and frequency domains separately without interaction is insufficient. FreqMixAttention attains the best results on most forecast horizons (**17/24 for MSE and 20/24 for MAE**). These findings highlight that integrating both domains is essential for capturing underlying patterns in diverse time series data.
 
 <p align="center">
-<img src="./figures/long_results.png"  alt="" align=center />
+<img src="./figures/main_results.png"  alt="" align=center />
 </p>
 
 
 ## Model Abalations
 
-To verify the effectiveness of each component of FreqMixAttNet, we provide the detailed ablation study on every possible design in both Past-Decomposable-Mixing and Future-Multipredictor-Mixing blocks on all 18 experiment benchmarks （see our paper for full results 😊）.
+To verify the effectiveness of each component of FreqMixAttNet, we provide the detailed ablation study on every possible design to evaluate four key architectural components: Adaptive Convolution Embedding (ACE), Wavelet Decomposition (WD), Dual-domain Cross Attention
+(DCA), and the Auxiliary Contrastive Loss (ACL). Table 3 summarizes the results on four ETT datasets, where each component is removed individually under the 96-step prediction horizon. Removing ACE and DCA leads to significant performance degradation, while WD provides slight improvements. The ACL also contributes marginally more than WD. （see our paper for full results 😊）.
 
 <p align="center">
 <img src="./figures/ablation.png"  alt="" align=center />
