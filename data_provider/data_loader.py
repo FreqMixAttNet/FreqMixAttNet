@@ -1,3 +1,225 @@
+from sklearn.preprocessing import MinMaxScaler,QuantileTransformer
+import numpy as np
+import pandas as pd
+import glob
+import re,os
+import torch
+from torch.utils.data import Dataset, DataLoader
+from sklearn.preprocessing import StandardScaler
+from utils.timefeatures import time_features
+import warnings
+# from utils.augmentation import run_augmentation_single
+import joblib
+import pickle
+warnings.filterwarnings('ignore')
+from datetime import datetime, timedelta
+from utils.RevIN import RevIN
+from utils.augmentation import run_augmentation, run_augmentation_single,DataTransform 
+
+def fill_dates(start_date_str, length):
+    # 将字符串转换为datetime对象
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    
+    # 创建一个用于存储所有日期的列表
+    date_list = []
+    
+    # 遍历从开始日期到结束日期的所有日期
+    current_date = start_date
+    flg=0
+    while flg < length:
+        date_list.append(current_date.strftime('%Y-%m-%d'))
+        current_date += timedelta(days=1)
+        flg+=1
+    
+    return date_list
+import holidays
+
+    
+class Dataset_day(Dataset):
+    def __init__(self, args, data_path, flag='train', size=None, features='MS', 
+                 target='session_cnt', scale=True, timeenc=0, freq='d', seasonal_patterns=None, vail_test_days=15):
+        # size [seq_len, label_len, pred_len]
+        self.args = args
+        
+        self.seq_len = args.seq_len
+        self.label_len = args.label_len
+        self.pred_len = args.pred_len
+        # init
+        assert flag in ['train', 'test', 'val', 'pred']
+        type_map = {'train': 0, 'val': 1, 'test': 2, 'pred':3}
+        self.set_type = type_map[flag]
+        self.flag = flag
+
+        self.features = features
+        self.target = args.target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+        self.vail_test_days = vail_test_days
+
+        self.root_path = args.root_path
+        self.data_path = data_path
+        self.model_id = args.model_id
+        self.start_test_days = args.start_test_days
+        self.start_pred_days  = args.start_pred_days
+        
+        if ('ivr' in str(data_path)) or ('ivr' in str(args.model_id)):
+            self.service_type = 'ivr'
+        elif ('xma' in str(data_path)) or ('xma' in str(args.model_id)):
+            self.service_type = 'xma'
+        elif ('guanhuai' in str(data_path)) or ('guanhuai' in str(args.model_id)):
+            self.service_type = 'guanhuai'
+        elif ('ima' in str(data_path)) or ('ima' in str(args.model_id)):
+            self.service_type = 'ima'
+        else:
+            print('pls define!')
+        # if self.set_type == 2:
+        #     self.data_path = args.train_path
+        # else:
+        #     self.data_path = args.train_path
+        
+        self.__read_data__()
+
+    def __read_data__(self):
+        
+        df_raw = pd.read_csv(os.path.join(self.root_path,
+                                          self.data_path))
+        df_raw = df_raw[df_raw['data_date'] < self.start_pred_days]
+        # if self.set_type != 3:
+        #     df_raw = df_raw[df_raw['data_date']<'2025-06-01']
+        if self.service_type == 'guanhuai':
+            df_raw = df_raw[df_raw['data_date']>='2023-01-01']            
+        # if self.service_type == 'ima':
+        #     df_raw = df_raw[df_raw['data_date']>='2018-11-01']   
+        
+        #drop 0115~0215 data
+        # df_raw = df_raw[(df_raw['data_date']<'2025-01-15') | (df_raw['data_date']>'2025-02-15')]
+        df_raw = df_raw.sort_values(by='data_date')
+        df_raw = df_raw.interpolate(method='linear', axis=0, limit=60)
+        # df_raw = df_raw.dropna(axis=1)
+        
+        print(os.path.join(self.root_path,self.data_path),'if is nan value!', df_raw.isnull().any().any(), len(df_raw))#, df_raw.isna().sum()
+
+        '''
+        df_raw.columns: ['data_date', ...(other features), target feature]
+        '''
+        cols = list(df_raw.columns)
+        # cols = ['data_date','xma_session_cnt',  'ima_session_cnt','ivr_session_cnt', 'jianguan_session_cnt','guanhuai_session_cnt']
+        cols.remove(self.target)
+        cols.remove('data_date')
+        print('our target goal for [',self.flag,'] is: ', self.target)
+        df_raw = df_raw[['data_date'] + cols + [self.target]]
+        
+        if self.set_type ==3:
+            num_train = int( len(df_raw) - self.vail_test_days) 
+            num_test = int( self.pred_len + self.vail_test_days -1)         
+            num_vali = num_test
+        else:
+            num_test = len(df_raw[df_raw['data_date']> self.start_test_days])
+            from datetime import datetime, timedelta
+
+            end_train_days = pd.to_datetime(self.start_test_days, format='%Y-%m-%d') - timedelta(days=self.vail_test_days)
+            num_train = len(df_raw[df_raw['data_date']< end_train_days.strftime('%Y-%m-%d')])
+            # num_test = int( self.pred_len + self.vail_test_days -1)         
+            num_vali = self.vail_test_days
+            
+        if num_vali==0 and self.set_type==1:
+            return None
+        border1s = [0, num_train - self.seq_len - self.pred_len, len(df_raw) - num_test - self.seq_len]
+        border2s = [num_train, num_train + num_vali -1, len(df_raw)]
+        print('border:', len(df_raw), num_train,num_vali, num_test, border1s, border2s)
+        
+        if self.set_type ==  3:
+            border1 = len(df_raw)-self.vail_test_days-self.seq_len + 1
+            border2 = len(df_raw)
+        else:
+            border1 = border1s[self.set_type]
+            border2 = border2s[self.set_type]
+
+        if self.features == 'M' or self.features == 'MS':
+            cols_data = df_raw.columns[1:]
+            df_data = df_raw[cols_data]
+        elif self.features == 'S':
+            df_data = df_raw[[self.target]]
+
+        if self.scale:
+            if self.set_type==0: #训练阶段保存归一化模型
+                if self.args.scaler_type=='minmax':
+                    self.scaler = MinMaxScaler() 
+                elif self.args.scaler_type == 'RevIN':
+                    self.scaler = RevIN(df_data.shape[-1])
+                else:
+                    self.scaler = StandardScaler()
+                train_data = df_data[border1s[0]:border2s[0]]
+                self.scaler.fit(train_data.values)
+                data = self.scaler.transform(df_data.values)
+                joblib.dump(self.scaler, './scalers/{}_scaler_model_for_{}.joblib'.format(self.model_id,self.service_type )) #保存文件                
+            else: #测试阶段加载归一化模型
+                self.scaler = joblib.load('./scalers/{}_scaler_model_for_{}.joblib'.format(self.model_id,self.service_type )) #保存文件                
+                data = self.scaler.transform(df_data.values)
+        else:
+            data = df_data.values
+
+        df_stamp = df_raw[['data_date']][border1:border2]        
+        df_stamp['data_date'] = pd.to_datetime(df_stamp.data_date, format='%Y-%m-%d')
+        print('#'*10, 'from_date, to_date', '#'*10)
+        gapday = df_stamp.max() - df_stamp.min() - pd.Timedelta(days=self.args.pred_len +self.args.seq_len-2)
+        print(self.set_type,gapday, 'feats_date:', df_stamp.min(), df_stamp.min()+ gapday + pd.Timedelta(days=self.args.seq_len)
+                  , '\nlabel date:', df_stamp.max()- gapday- pd.Timedelta(days=self.args.pred_len), df_stamp.max()- pd.Timedelta(days=self.args.pred_len), df_stamp.max())
+        if self.set_type ==3:
+            max_date = df_stamp.max()  # 确保日期格式正确
+            end_date = df_stamp.max() + pd.Timedelta(days=self.args.pred_len)
+            print('#'*30,max_date.dt.strftime('%Y-%m-%d'), end_date.dt.strftime('%Y-%m-%d'))
+            # 生成日期范围
+            date_range = fill_dates(self.start_pred_days, self.pred_len)
+            new_rows = pd.DataFrame(date_range, columns=['data_date'])
+            new_rows['data_date'] = pd.to_datetime(new_rows.data_date, format='%Y-%m-%d')
+            # 将新生成的日期行添加到原始DataFrame中
+            df_stamp = pd.concat([df_stamp,new_rows]).sort_values('data_date').reset_index(drop=True)
+            print(' filled date for future {} days'.format(self.pred_len), df_stamp.shape)
+
+        if self.timeenc == 0:
+            df_stamp['month'] = df_stamp.data_date.apply(lambda row: row.month, 1)
+            df_stamp['day'] = df_stamp.data_date.apply(lambda row: row.day, 1)
+            df_stamp['weekday'] = df_stamp.data_date.apply(lambda row: row.weekday(), 1)
+            # df_stamp['hour'] = df_stamp.data_date.apply(lambda row: row.hour, 1)
+            # df_stamp['weekofyear'] = df_stamp.data_date.apply(lambda row: row.dt.isocalendar().week, 1)
+            data_stamp = df_stamp.drop(['data_date'], axis=1).values
+
+        self.data_x = data[border1:border2]
+        if self.set_type ==  3:
+            self.data_y = np.ones((len(self.data_x)+self.pred_len, 1))           
+        else:
+            self.data_y = data[border1:border2]              
+        self.data_stamp = data_stamp
+        print('the shapes of x y and stamp: ',self.data_x.shape, self.data_y.shape, self.data_stamp.shape)
+
+    def __getitem__(self, index):
+        s_begin = index
+        s_end = s_begin + self.seq_len
+        r_begin = s_end - self.label_len
+        r_end = r_begin + self.label_len + self.pred_len
+
+        seq_x = self.data_x[s_begin:s_end]
+        seq_y = self.data_y[r_begin:r_end]
+        seq_x_mark = self.data_stamp[s_begin:s_end]
+        seq_y_mark = self.data_stamp[r_begin:r_end]
+
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        if self.set_type ==3:
+            return len(self.data_x) - self.seq_len + 1
+        else:
+            return len(self.data_x) - self.seq_len - self.pred_len + 1
+        # return len(self.data_x) - self.pred_len + 1
+
+    def inverse_transform(self, data):
+        return self.scaler.inverse_transform(data)
+
+
+    
+    
 import os
 import numpy as np
 import pandas as pd
@@ -75,7 +297,15 @@ class Dataset_ETT_hour(Dataset):
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
             df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
             df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            
+            df_stamp['weekofyear'] = df_stamp['date'].dt.isocalendar().week
+            df_stamp['is_weekend'] = df_stamp.date.apply(lambda row: 1 if row.weekday()>=5 else 0)
+            df_stamp['quarter'] = df_stamp.date.apply(lambda row: row.quarter,1)
+            cn_holidays = holidays.CN()
+            df_stamp['is_holidays'] = df_stamp.date.apply(lambda x:1 if x in cn_holidays else 0)
+            # print(df_stamp.head(3))
+            
+            data_stamp = df_stamp.drop(['date'], axis=1).values.astype(np.int32)
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
@@ -165,7 +395,15 @@ class Dataset_ETT_minute(Dataset):
             df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
             df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
             df_stamp['minute'] = df_stamp.minute.map(lambda x: x // 15)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            
+            df_stamp['weekofyear'] = df_stamp['date'].dt.isocalendar().week
+            df_stamp['is_weekend'] = df_stamp.date.apply(lambda row: 1 if row.weekday()>=5 else 0)
+            df_stamp['quarter'] = df_stamp.date.apply(lambda row: row.quarter,1)
+            cn_holidays = holidays.CN()
+            df_stamp['is_holidays'] = df_stamp.date.apply(lambda x:1 if x in cn_holidays else 0)
+            print(df_stamp.head(3))
+            
+            data_stamp = df_stamp.drop(['date'], axis=1).values.astype(np.int32)
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
@@ -263,7 +501,15 @@ class Dataset_Custom(Dataset):
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
             df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
             df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            
+            df_stamp['weekofyear'] = df_stamp['date'].dt.isocalendar().week
+            df_stamp['is_weekend'] = df_stamp.date.apply(lambda row: 1 if row.weekday()>=5 else 0)
+            df_stamp['quarter'] = df_stamp.date.apply(lambda row: row.quarter,1)
+            cn_holidays = holidays.CN()
+            df_stamp['is_holidays'] = df_stamp.date.apply(lambda x:1 if x in cn_holidays else 0)
+            print(df_stamp.head(3))
+            
+            data_stamp = df_stamp.drop(['date'], axis=1).values.astype(np.int32)
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
@@ -323,9 +569,12 @@ class Dataset_M4(Dataset):
             dataset = M4Dataset.load(training=True, dataset_file=self.root_path)
         else:
             dataset = M4Dataset.load(training=False, dataset_file=self.root_path)
-        training_values = np.array(
-            [v[~np.isnan(v)] for v in
-             dataset.values[dataset.groups == self.seasonal_patterns]])  # split different frequencies
+        # training_values = np.array([
+        #     v[~np.isnan(v)] for v in
+        #      dataset.values[dataset.groups == self.seasonal_patterns]])  # split different frequencies
+        training_values = np.asarray([
+            v[~np.isnan(v)] for v in
+             dataset.values[dataset.groups == self.seasonal_patterns]], dtype=object)
         self.ids = np.array([i for i in dataset.ids[dataset.groups == self.seasonal_patterns]])
         self.timeseries = [ts for ts in training_values]
 
@@ -871,3 +1120,5 @@ class Dataset_Solar(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+
