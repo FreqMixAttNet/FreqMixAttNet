@@ -1,29 +1,19 @@
 import argparse
 import torch
 import pandas as pd
-# from model import DlinearModel
 from data_provider.data_loader import Dataset_day
 from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
-from exp.xma_ivr_exp_long_term_forecasting import Fusion_Exp_Long_Term_Forecast
 import torch.backends
 import time, random
 import numpy as np
-# from cal_metrics import cal_mape_ratio
 
 import os
-# 仅设置一块可见
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-# 设置多块可见
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1,2,3'
-# os.environ['CUDA_LAUNCH_BLOCKING']='1'
+
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 if_fusion = False
 file2 = "record_results.txt"
 
-type = 'IVR_RENGONG'
-
-# sbatch ./huawu-weili.slurm
-# scancel -v your_jobid
+type = 'TEST'
 
 
 parser = argparse.ArgumentParser(description="Process pySpark arguments.")
@@ -34,9 +24,8 @@ parser.add_argument('--task_name', type=str, default='long_term_forecast',
 
 parser.add_argument('--is_training', type=int, default=1, help='status')
 parser.add_argument('--model_id', type=str, default='09_', help='model id')
-parser.add_argument('--model', type=str, default='TimeMixerFilter3_5', help='model name, options: [ Dlinear,PatchTST,Pyraformer,SparseTSF,iTransformer,TimeMixer,TimeMixer2, TimeMixer3, PaiFilter, CycleNet, TimeMixerFilter3_1,MaskTimeMixerFilter, WaveFilterMixNet0_1')
+parser.add_argument('--model', type=str, default='FreqMixAttNet', help='model name, options: [ FreqMixAttNet]')
 
-# /root/task
  # data loader
 parser.add_argument('--data', type=str,default="ETTh1", help='dataset type')
 parser.add_argument('--if_vaild', type=bool, default=True, help='if use valid data or not~')
@@ -190,7 +179,7 @@ length = args.pred_len
 type = 'ETTh1'
 model_type = args.model
 
-from exp.exp_long_term_forecasting_Contr3 import Exp_Long_Term_Forecast
+from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
     
 Exp = Exp_Long_Term_Forecast
     
