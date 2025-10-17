@@ -1,9 +1,3 @@
-# export CUDA_VISIBLE_DEVICES=0
-
-nvidia-smi
-echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
-python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'CUDA device count: {torch.cuda.device_count()}')"
-
 
 model_name=FreqMixAttNet
 run_date='test'
@@ -15,9 +9,9 @@ learning_rate=0.02
 d_model=32
 n_heads=8
 d_ff=32
-train_epochs=20
+train_epochs=6
 patience=6
-batch_size=8
+batch_size=128
 dropout=0.1
 down_sampling_layers=2
 down_sampling_window=2
