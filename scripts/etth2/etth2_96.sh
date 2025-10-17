@@ -1,9 +1,3 @@
-# export CUDA_VISIBLE_DEVICES=0
-
-nvidia-smi
-echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
-python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'CUDA device count: {torch.cuda.device_count()}')"
-
 
 model_name=FreqMixAttNet
 run_date='test'
@@ -12,17 +6,19 @@ root_path='./data'
 
 seq_len=96
 e_layers=2
-learning_rate=0.02
-d_model=32
-n_heads=8
+learning_rate=0.03
+d_model=16
+n_heads=4
 d_ff=32
 train_epochs=6
 patience=6
 batch_size=128
-dropout=0.1
+dropout=0.15
 down_sampling_layers=2
 down_sampling_window=2
 devices='0,1'
+aug_constrast_weight1=0.05
+aug_constrast_weight2=0.05
 
 python -u run_model.py \
 --gpu 0 \
@@ -60,11 +56,10 @@ python -u run_model.py \
 --patience $patience \
 --batch_size $batch_size \
 --aug_weight 0.07 \
---aug_constrast_weight1 0.05 \
---aug_constrast_weight2 0.05 \
+--aug_constrast_weight1 $aug_constrast_weight1 \
+--aug_constrast_weight2 $aug_constrast_weight2 \
 --mix_rate 0.1 \
---jitter_ratio 0.3
-
+--jitter_ratio 0.3 
 
 
 
