@@ -10,14 +10,14 @@ root_path='./data'
 
 seq_len=96
 e_layers=2
-learning_rate=0.02
+learning_rate=0.03
 d_model=32
 n_heads=8
 d_ff=32
 train_epochs=6
 patience=6
 batch_size=128
-dropout=0.1
+dropout=0.2
 down_sampling_layers=2
 down_sampling_window=2
 devices='0,1'
