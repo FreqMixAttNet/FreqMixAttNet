@@ -33,7 +33,7 @@ python -u run_model.py \
 --features M \
 --seq_len $seq_len \
 --label_len 0 \
---pred_len 96 \
+--pred_len 336 \
 --e_layers $e_layers \
 --decomp_method wavelet \
 --enc_in 7 \
