@@ -11,9 +11,9 @@ root_path='./data'
 
 seq_len=96
 e_layers=2
-learning_rate=0.02
-d_model=32
-n_heads=8
+learning_rate=0.03
+d_model=16
+n_heads=4
 d_ff=32
 train_epochs=20
 patience=6
@@ -21,10 +21,12 @@ batch_size=8
 dropout=0.1
 down_sampling_layers=2
 down_sampling_window=2
+aug_constrast_weight1=0.04
+aug_constrast_weight2=0.08
 freq_weight=4
-alpha=0.7 
+alpha=0.9 
 l1l2_alpha=0.035
-aug_weight=0.017
+aug_weight=0.04
 mix_rate=0.1
 jitter_ratio=0.3
 devices='0'
@@ -67,4 +69,6 @@ python -u run_model.py \
 --batch_size $batch_size \
 --aug_weight $aug_weight \
 --mix_rate $mix_rate \
---jitter_ratio $jitter_ratio 
+--aug_constrast_weight1 $aug_constrast_weight1 \
+--aug_constrast_weight2 $aug_constrast_weight2 \
+--jitter_ratio $jitter_ratio \
